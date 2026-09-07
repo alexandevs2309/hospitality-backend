@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hospitality-postgres
+    environment:
+      POSTGRES_DB: hospitality_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hospitality_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - hospitality-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hospitality-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=hospitality_db;Username=postgres;Password=postgres"
+      JwtSettings__Secret: "DockerDevelopmentSecretKeyForJWTTokenGeneration"
+      JwtSettings__Issuer: "HospitalityAPI_Docker"
+      JwtSettings__Audience: "HospitalityClient_Docker"
+      JwtSettings__ExpiryInMinutes: "1440"
+      Cors__AllowedOrigins__0: "http://localhost:4200"
+      Cors__AllowedOrigins__1: "https://localhost:4200"
+    ports:
+      - "5000:8080"
+      - "5001:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hospitality-network
+    volumes:
+      - ./logs:/app/logs
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hospitality-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@hospitality.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hospitality-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  hospitality-network:
+    driver: bridge

@@ -1,0 +1,20 @@
+## .NET build artifacts
+bin/
+obj/
+[pP]ublish/
+*.user
+
+## Rider / Visual Studio
+.idea/
+.vs/
+*.suo
+*.userprefs
+
+## Logs
+logs/
+*.log
+
+## Local env / secrets
+appsettings.Local*.json
+*.env
+.env
