@@ -40,8 +40,8 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins("http://localhost:4200", "https://localhost:4200")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
+                  .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                  .WithHeaders("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Device-Info")
                   .AllowCredentials()
                   .WithExposedHeaders("Content-Disposition");
         });
@@ -55,8 +55,8 @@ builder.Services.AddCors(options =>
                 ?? new[] { "http://localhost:4200", "https://localhost:4200" };
             
             policy.WithOrigins(allowedOrigins)
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
+                  .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                  .WithHeaders("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Device-Info")
                   .AllowCredentials()
                   .WithExposedHeaders("Content-Disposition");
         });
@@ -66,6 +66,7 @@ var app = builder.Build();
 
 // Configurar pipeline HTTP
 app.UseMiddleware<ExceptionMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

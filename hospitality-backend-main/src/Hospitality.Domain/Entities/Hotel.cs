@@ -14,12 +14,28 @@ public class Hotel : BaseEntity, ISoftDelete
     public string TimeZone { get; set; } = "UTC";
     public string City { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
+    public string? BusinessName { get; set; }
+    public int? YearOpened { get; set; }
+    public string? PostalCode { get; set; }
+    public string? Currency { get; set; } = "USD";
+    public decimal? TaxRate { get; set; }
+    public string? CheckInTime { get; set; }
+    public string? CheckOutTime { get; set; }
+    public string? HotelLanguages { get; set; }
+    // [DEPRECADO Fase 0] Empaquetado de módulos legado (CSV). El fuente de verdad
+    // pasó a Organization.SelectedModules (jsonb); resolución org-first, override por hotel.
+    // Se elimina al migrar la API al nuevo modelo.
+    public string? SelectedModules { get; set; }
     
+    // Organización propietaria (tenant)
+    public Guid OrganizationId { get; set; }
+
     // Soft delete
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
 
     // Navigation properties
+    public Organization Organization { get; set; } = null!;
     public ICollection<Room> Rooms { get; set; } = new List<Room>();
     public ICollection<RoomType> RoomTypes { get; set; } = new List<RoomType>();
     public ICollection<HotelMetrics> Metrics { get; set; } = new List<HotelMetrics>();

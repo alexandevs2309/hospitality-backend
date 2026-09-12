@@ -34,12 +34,22 @@ public class ApplicationUser : IdentityUser, IAuditable, ISoftDelete
     public DateTime? LastLoginAt { get; set; }
     public string? LastLoginIp { get; set; }
     public bool IsActive { get; set; } = true;
+    // Debe cambiar la contraseña en el próximo inicio de sesión (primer acceso / registro)
+    public bool MustChangePassword { get; set; }
     
     // Refresh tokens para JWT
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiry { get; set; }
+
+    // Autenticación en dos pasos (TOTP)
+    // TwoFactorEnabled ya lo aporta Identity.
+    // RecoveryCodes: códigos de recuperación (SHA-256, separados por ':').
+    public string? RecoveryCodes { get; set; }
     
-    // Propiedad (hotel) del usuario
+    // [DEPRECADO Fase 0] Propiedad (hotel) del usuario — modelo "un hotel por dueño".
+    // El scope real ahora viene de PropertyAssignment (por propiedad) y
+    // OrganizationMember (por organización/tenant). Se conserva como fallback de
+    // transición en auth y se elimina al migrar los guards y el registro.
     public Guid? HotelId { get; set; }
     
     // Navigation properties

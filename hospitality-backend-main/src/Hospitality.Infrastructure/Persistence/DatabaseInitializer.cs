@@ -112,8 +112,25 @@ public class DatabaseInitializer
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
+        // Fase 0: la propiedad de demo también nace bajo una Organización (Id = hotel.Id).
+        var organization = new Organization
+        {
+            Id = Guid.NewGuid(),
+            Name = "Hotel Aurora",
+            Email = "contacto@hotelaurora.com",
+            PhoneNumber = "+34 910 000 000",
+            Plan = "small",
+            DefaultCurrency = "EUR",
+            TimeZone = "Europe/Madrid",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
         var hotel = new Hotel
         {
+            Id = organization.Id,
+            OrganizationId = organization.Id,
             Name = "Hotel Aurora",
             Description = "Hotel boutique de demostración.",
             Address = "Av. Reforma 123",
@@ -168,6 +185,7 @@ public class DatabaseInitializer
         };
 
         await _context.Hotels.AddAsync(hotel);
+        await _context.Organizations.AddAsync(organization);
         await _context.RoomTypes.AddRangeAsync(roomTypes);
         await _context.Rooms.AddRangeAsync(rooms);
         await _context.Guests.AddRangeAsync(guests);

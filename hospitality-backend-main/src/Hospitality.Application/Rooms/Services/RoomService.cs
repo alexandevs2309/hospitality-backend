@@ -239,6 +239,20 @@ public class RoomService : IRoomService
         room.CompleteMaintenance();
         room.UpdatedAt = DateTime.UtcNow;
 
+        var openTickets = await _context.MaintenanceTickets
+            .Where(t => t.RoomId == roomId &&
+                        t.Status != MaintenanceTicketStatus.Closed &&
+                        t.Status != MaintenanceTicketStatus.Cancelled)
+            .ToListAsync();
+
+        foreach (var ticket in openTickets)
+        {
+            ticket.Status = MaintenanceTicketStatus.Resolved;
+            ticket.CompletedAt = DateTime.UtcNow;
+            ticket.ResolutionNotes = "Mantenimiento completado desde la consola de habitaciones.";
+            ticket.UpdatedAt = DateTime.UtcNow;
+        }
+
         await _context.SaveChangesAsync();
         return MapToDto(room);
     }

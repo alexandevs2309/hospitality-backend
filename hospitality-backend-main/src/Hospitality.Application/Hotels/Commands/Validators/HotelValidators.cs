@@ -44,6 +44,36 @@ public class CreateHotelCommandValidator : AbstractValidator<CreateHotelCommand>
         RuleFor(x => x.TimeZone)
             .NotEmpty().WithMessage("La zona horaria es obligatoria.")
             .MaximumLength(100).WithMessage("La zona horaria no puede superar 100 caracteres.");
+
+        RuleFor(x => x.BusinessName)
+            .MaximumLength(200).WithMessage("La razón social no puede superar 200 caracteres.");
+
+        RuleFor(x => x.YearOpened)
+            .GreaterThanOrEqualTo(1900).WithMessage("El año de apertura no puede ser anterior a 1900.")
+            .LessThanOrEqualTo(DateTime.UtcNow.Year).WithMessage("El año de apertura no puede ser futuro.");
+
+        RuleFor(x => x.PostalCode)
+            .MaximumLength(20).WithMessage("El código postal no puede superar 20 caracteres.");
+
+        RuleFor(x => x.Currency)
+            .MaximumLength(3).WithMessage("La moneda debe usar un código ISO de 3 letras.")
+            .Matches("^[A-Z]{3}$").WithMessage("La moneda debe usar un código ISO de 3 letras (ej. MXN, EUR).");
+
+        RuleFor(x => x.TaxRate)
+            .GreaterThanOrEqualTo(0).WithMessage("El impuesto no puede ser negativo.")
+            .LessThanOrEqualTo(100).WithMessage("El impuesto no puede superar 100%.");
+
+        RuleFor(x => x.CheckInTime)
+            .Matches("^([01]\\d|2[0-3]):([0-5]\\d)$").WithMessage("El horario de check-in debe estar en formato HH:mm (ej. 14:00).");
+
+        RuleFor(x => x.CheckOutTime)
+            .Matches("^([01]\\d|2[0-3]):([0-5]\\d)$").WithMessage("El horario de check-out debe estar en formato HH:mm (ej. 12:00).");
+
+        RuleFor(x => x.HotelLanguages)
+            .MaximumLength(300).WithMessage("El listado de idiomas no puede superar 300 caracteres.");
+
+        RuleFor(x => x.SelectedModules)
+            .MaximumLength(500).WithMessage("El listado de módulos no puede superar 500 caracteres.");
     }
 }
 
@@ -92,5 +122,35 @@ public class UpdateHotelCommandValidator : AbstractValidator<UpdateHotelCommand>
         RuleFor(x => x.TimeZone)
             .NotEmpty().WithMessage("La zona horaria es obligatoria.")
             .MaximumLength(100).WithMessage("La zona horaria no puede superar 100 caracteres.");
+
+        RuleFor(x => x.BusinessName)
+            .MaximumLength(200).WithMessage("La razón social no puede superar 200 caracteres.");
+
+        RuleFor(x => x.YearOpened)
+            .GreaterThanOrEqualTo(1900).WithMessage("El año de apertura no puede ser anterior a 1900.")
+            .LessThanOrEqualTo(DateTime.UtcNow.Year).WithMessage("El año de apertura no puede ser futuro.");
+
+        RuleFor(x => x.PostalCode)
+            .MaximumLength(20).WithMessage("El código postal no puede superar 20 caracteres.");
+
+        RuleFor(x => x.Currency)
+            .MaximumLength(3).WithMessage("La moneda debe usar un código ISO de 3 letras.")
+            .Matches("^[A-Z]{3}$").WithMessage("La moneda debe usar un código ISO de 3 letras (ej. MXN, EUR).");
+
+        RuleFor(x => x.TaxRate)
+            .GreaterThanOrEqualTo(0).WithMessage("El impuesto no puede ser negativo.")
+            .LessThanOrEqualTo(100).WithMessage("El impuesto no puede superar 100%.");
+
+        RuleFor(x => x.CheckInTime)
+            .Matches("^([01]\\d|2[0-3]):([0-5]\\d)$").WithMessage("El horario de check-in debe estar en formato HH:mm (ej. 14:00).");
+
+        RuleFor(x => x.CheckOutTime)
+            .Matches("^([01]\\d|2[0-3]):([0-5]\\d)$").WithMessage("El horario de check-out debe estar en formato HH:mm (ej. 12:00).");
+
+        RuleFor(x => x.HotelLanguages)
+            .MaximumLength(300).WithMessage("El listado de idiomas no puede superar 300 caracteres.");
+
+        RuleFor(x => x.SelectedModules)
+            .MaximumLength(500).WithMessage("El listado de módulos no puede superar 500 caracteres.");
     }
 }

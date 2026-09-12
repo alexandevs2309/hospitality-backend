@@ -6,6 +6,16 @@ namespace Hospitality.Application.Common.Interfaces;
 
 public interface IApplicationDbContext
 {
+    DbSet<Organization> Organizations { get; }
+    DbSet<OrganizationMember> OrganizationMembers { get; }
+    DbSet<PropertyAssignment> PropertyAssignments { get; }
+    DbSet<RoomRate> RoomRates { get; }
+    DbSet<RatePlan> RatePlans { get; }
+    DbSet<Channel> Channels { get; }
+    DbSet<ChannelMapping> ChannelMappings { get; }
+    DbSet<DomainEvent> DomainEvents { get; }
+    DbSet<OutboxMessage> OutboxMessages { get; }
+
     DbSet<Hotel> Hotels { get; }
     DbSet<Room> Rooms { get; }
     DbSet<RoomType> RoomTypes { get; }
@@ -18,6 +28,7 @@ public interface IApplicationDbContext
     DbSet<Invoice> Invoices { get; }
     DbSet<InvoiceLineItem> InvoiceLineItems { get; }
     DbSet<ApplicationUser> Users { get; }
+    DbSet<UserSession> UserSessions { get; }
 
     DatabaseFacade Database { get; }
 

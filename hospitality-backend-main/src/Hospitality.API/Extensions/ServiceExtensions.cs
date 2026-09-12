@@ -1,6 +1,8 @@
 using System.Text;
+using Hospitality.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Threading.RateLimiting;
@@ -53,6 +55,27 @@ public static class ServiceExtensions
                         context.Token = accessToken;
                     }
                     return Task.CompletedTask;
+                },
+                OnTokenValidated = async context =>
+                {
+                    // Comprobar en cada petición que la sesión (claim "sid") sigue activa en BD.
+                    var sidValue = context.Principal?.FindFirst("sid")?.Value;
+                    if (!Guid.TryParse(sidValue, out var sessionId))
+                    {
+                        context.Fail("Falta el identificador de sesión.");
+                        return;
+                    }
+
+                    var db = context.HttpContext.RequestServices.GetRequiredService<IApplicationDbContext>();
+                    var now = DateTime.UtcNow;
+                    var active = await db.UserSessions
+                        .AsNoTracking()
+                        .AnyAsync(s => s.Id == sessionId && s.RevokedAt == null && s.ExpiresAt > now);
+
+                    if (!active)
+                    {
+                        context.Fail("La sesión fue revocada o ha expirado.");
+                    }
                 }
             };
         });
@@ -137,6 +160,18 @@ public static class ServiceExtensions
                             PermitLimit = permitLimit,
                             Window = TimeSpan.FromSeconds(windowSeconds),
                             QueueLimit = queueLimit,
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                        }));
+                // Política estricta para login: 10 intentos / 60s (además del bloqueo por fallos de ASP.NET).
+                // Sin cola: el exceso se rechaza al momento con 429 (anti brute-force).
+                options.AddPolicy("login", context =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = configuration.GetValue("RateLimiting:LoginPermitLimit", 10),
+                            Window = TimeSpan.FromSeconds(windowSeconds),
+                            QueueLimit = 0,
                             QueueProcessingOrder = QueueProcessingOrder.OldestFirst
                         }));
             });

@@ -91,6 +91,9 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -115,6 +118,9 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ProfilePicture")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RecoveryCodes")
                         .HasColumnType("text");
 
                     b.Property<string>("RefreshToken")
@@ -159,6 +165,195 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Entity")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Module")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Action");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AuditLogs", (string)null);
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.Channel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ChannelType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("CommissionRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CredentialsJson")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("HotelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HotelId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Channels");
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.ChannelMapping", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChannelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ChannelId1")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ChannelRatePlanCode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ChannelRoomCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("RoomTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChannelId1");
+
+                    b.HasIndex("RoomTypeId");
+
+                    b.HasIndex("ChannelId", "RoomTypeId")
+                        .IsUnique();
+
+                    b.ToTable("ChannelMappings");
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.DomainEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActorUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<Guid>("AggregateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AggregateType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("CorrelationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("OccurredOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Payload")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurredOn");
+
+                    b.HasIndex("AggregateType", "AggregateId");
+
+                    b.HasIndex("AggregateType", "AggregateId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("DomainEvents", (string)null);
                 });
 
             modelBuilder.Entity("Hospitality.Domain.Entities.Guest", b =>
@@ -261,6 +456,15 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("BusinessName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CheckInTime")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CheckOutTime")
+                        .HasColumnType("text");
+
                     b.Property<string>("City")
                         .IsRequired()
                         .HasColumnType("text");
@@ -272,6 +476,9 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Currency")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -280,6 +487,9 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("HotelLanguages")
                         .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
@@ -292,12 +502,24 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("PostalCode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SelectedModules")
+                        .HasColumnType("text");
+
                     b.Property<int>("StarRating")
                         .HasColumnType("integer");
+
+                    b.Property<decimal?>("TaxRate")
+                        .HasColumnType("numeric");
 
                     b.Property<string>("TimeZone")
                         .IsRequired()
@@ -312,7 +534,12 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.Property<string>("Website")
                         .HasColumnType("text");
 
+                    b.Property<int?>("YearOpened")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("Hotels");
                 });
@@ -715,6 +942,162 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.ToTable("MaintenanceTickets");
                 });
 
+            modelBuilder.Entity("Hospitality.Domain.Entities.Organization", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BusinessName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DefaultCurrency")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Plan")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("SelectedModules")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("TaxId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("IsActive", "IsDeleted");
+
+                    b.ToTable("Organizations", (string)null);
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.OrganizationMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OrganizationRole")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("OrganizationId", "UserId")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("OrganizationMembers");
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DomainEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Payload")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Topic")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status", "NextAttemptAt");
+
+                    b.ToTable("OutboxMessages", (string)null);
+                });
+
             modelBuilder.Entity("Hospitality.Domain.Entities.Payment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -789,6 +1172,95 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.ToTable("Payments");
                 });
 
+            modelBuilder.Entity("Hospitality.Domain.Entities.PropertyAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PropertyRole")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("PropertyId", "UserId")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("PropertyAssignments");
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.RatePlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CancellationDeadlineHours")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("HotelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MinStay")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Multiplier")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Refundability")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDefault");
+
+                    b.HasIndex("HotelId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("RatePlans");
+                });
+
             modelBuilder.Entity("Hospitality.Domain.Entities.Reservation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -840,6 +1312,12 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.Property<int>("NumberOfGuests")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("PenaltyAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("RatePlanId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ReservationNumber")
                         .IsRequired()
                         .HasColumnType("text");
@@ -872,6 +1350,8 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("GuestId");
+
+                    b.HasIndex("RatePlanId");
 
                     b.HasIndex("RoomId");
 
@@ -941,6 +1421,40 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.ToTable("Rooms");
                 });
 
+            modelBuilder.Entity("Hospitality.Domain.Entities.RoomRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("HotelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("RoomTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoomTypeId");
+
+                    b.HasIndex("HotelId", "RoomTypeId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("RoomRates");
+                });
+
             modelBuilder.Entity("Hospitality.Domain.Entities.RoomType", b =>
                 {
                     b.Property<Guid>("Id")
@@ -978,6 +1492,9 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("RatePlanId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -985,7 +1502,68 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("HotelId");
 
+                    b.HasIndex("RatePlanId");
+
                     b.ToTable("RoomTypes");
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.UserSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceFingerprint")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("DeviceName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RefreshTokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RevokedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceFingerprint");
+
+                    b.HasIndex("RefreshTokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserSessions", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -1120,6 +1698,51 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Hospitality.Domain.Entities.Channel", b =>
+                {
+                    b.HasOne("Hospitality.Domain.Entities.Hotel", "Hotel")
+                        .WithMany()
+                        .HasForeignKey("HotelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Hotel");
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.ChannelMapping", b =>
+                {
+                    b.HasOne("Hospitality.Domain.Entities.Channel", "Channel")
+                        .WithMany()
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Hospitality.Domain.Entities.Channel", null)
+                        .WithMany("Mappings")
+                        .HasForeignKey("ChannelId1");
+
+                    b.HasOne("Hospitality.Domain.Entities.RoomType", "RoomType")
+                        .WithMany()
+                        .HasForeignKey("RoomTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Channel");
+
+                    b.Navigation("RoomType");
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.Hotel", b =>
+                {
+                    b.HasOne("Hospitality.Domain.Entities.Organization", "Organization")
+                        .WithMany("Properties")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+                });
+
             modelBuilder.Entity("Hospitality.Domain.Entities.HotelMetrics", b =>
                 {
                     b.HasOne("Hospitality.Domain.Entities.Hotel", "Hotel")
@@ -1191,6 +1814,17 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.Navigation("Room");
                 });
 
+            modelBuilder.Entity("Hospitality.Domain.Entities.OrganizationMember", b =>
+                {
+                    b.HasOne("Hospitality.Domain.Entities.Organization", "Organization")
+                        .WithMany("Members")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+                });
+
             modelBuilder.Entity("Hospitality.Domain.Entities.Payment", b =>
                 {
                     b.HasOne("Hospitality.Domain.Entities.Invoice", "Invoice")
@@ -1208,6 +1842,28 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.Navigation("Reservation");
                 });
 
+            modelBuilder.Entity("Hospitality.Domain.Entities.PropertyAssignment", b =>
+                {
+                    b.HasOne("Hospitality.Domain.Entities.Hotel", "Property")
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Property");
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.RatePlan", b =>
+                {
+                    b.HasOne("Hospitality.Domain.Entities.Hotel", "Hotel")
+                        .WithMany()
+                        .HasForeignKey("HotelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Hotel");
+                });
+
             modelBuilder.Entity("Hospitality.Domain.Entities.Reservation", b =>
                 {
                     b.HasOne("Hospitality.Domain.Entities.Guest", "Guest")
@@ -1222,6 +1878,10 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Hospitality.Domain.Entities.RatePlan", "RatePlan")
+                        .WithMany()
+                        .HasForeignKey("RatePlanId");
+
                     b.HasOne("Hospitality.Domain.Entities.Room", "Room")
                         .WithMany("Reservations")
                         .HasForeignKey("RoomId")
@@ -1231,6 +1891,8 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.Navigation("Guest");
 
                     b.Navigation("Hotel");
+
+                    b.Navigation("RatePlan");
 
                     b.Navigation("Room");
                 });
@@ -1254,6 +1916,25 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.Navigation("RoomType");
                 });
 
+            modelBuilder.Entity("Hospitality.Domain.Entities.RoomRate", b =>
+                {
+                    b.HasOne("Hospitality.Domain.Entities.Hotel", "Hotel")
+                        .WithMany()
+                        .HasForeignKey("HotelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Hospitality.Domain.Entities.RoomType", "RoomType")
+                        .WithMany()
+                        .HasForeignKey("RoomTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Hotel");
+
+                    b.Navigation("RoomType");
+                });
+
             modelBuilder.Entity("Hospitality.Domain.Entities.RoomType", b =>
                 {
                     b.HasOne("Hospitality.Domain.Entities.Hotel", "Hotel")
@@ -1262,7 +1943,14 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Hospitality.Domain.Entities.RatePlan", "RatePlan")
+                        .WithMany("RoomTypes")
+                        .HasForeignKey("RatePlanId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Hotel");
+
+                    b.Navigation("RatePlan");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1321,6 +2009,11 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.Navigation("ReportedTickets");
                 });
 
+            modelBuilder.Entity("Hospitality.Domain.Entities.Channel", b =>
+                {
+                    b.Navigation("Mappings");
+                });
+
             modelBuilder.Entity("Hospitality.Domain.Entities.Guest", b =>
                 {
                     b.Navigation("Reservations");
@@ -1340,6 +2033,18 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.Navigation("LineItems");
 
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.Organization", b =>
+                {
+                    b.Navigation("Members");
+
+                    b.Navigation("Properties");
+                });
+
+            modelBuilder.Entity("Hospitality.Domain.Entities.RatePlan", b =>
+                {
+                    b.Navigation("RoomTypes");
                 });
 
             modelBuilder.Entity("Hospitality.Domain.Entities.Reservation", b =>

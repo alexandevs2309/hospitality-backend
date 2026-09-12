@@ -51,6 +51,12 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
 
         RuleFor(x => x.Position)
             .MaximumLength(100).WithMessage("El cargo no puede superar 100 caracteres.");
+
+        RuleFor(x => x.Language)
+            .MaximumLength(10).WithMessage("El idioma no es válido.");
+
+        RuleFor(x => x.TimeZone)
+            .MaximumLength(100).WithMessage("La zona horaria no puede superar 100 caracteres.");
     }
 }
 
@@ -134,5 +140,47 @@ public class RefreshTokenCommandValidator : AbstractValidator<RefreshTokenComman
         RuleFor(x => x.RefreshToken)
             .NotEmpty().WithMessage("El token de refresco es obligatorio.")
             .MaximumLength(512).WithMessage("El token de refresco no puede superar 512 caracteres.");
+    }
+}
+
+public class TwoFactorLoginCommandValidator : AbstractValidator<TwoFactorLoginCommand>
+{
+    public TwoFactorLoginCommandValidator()
+    {
+        RuleFor(x => x.TwoFactorToken)
+            .NotEmpty().WithMessage("La sesión de segundo factor es obligatoria.");
+
+        RuleFor(x => x.Code)
+            .NotEmpty().WithMessage("El código es obligatorio.")
+            .MaximumLength(12).WithMessage("El código no puede superar 12 caracteres.");
+    }
+}
+
+public class TwoFactorVerifyCommandValidator : AbstractValidator<TwoFactorVerifyCommand>
+{
+    public TwoFactorVerifyCommandValidator()
+    {
+        RuleFor(x => x.Code)
+            .NotEmpty().WithMessage("El código de verificación es obligatorio.")
+            .MaximumLength(12).WithMessage("El código no puede superar 12 caracteres.");
+    }
+}
+
+public class TwoFactorDisableCommandValidator : AbstractValidator<TwoFactorDisableCommand>
+{
+    public TwoFactorDisableCommandValidator()
+    {
+        RuleFor(x => x.Code)
+            .NotEmpty().WithMessage("El código de verificación es obligatorio.")
+            .MaximumLength(12).WithMessage("El código no puede superar 12 caracteres.");
+    }
+}
+
+public class RevokeSessionCommandValidator : AbstractValidator<RevokeSessionCommand>
+{
+    public RevokeSessionCommandValidator()
+    {
+        RuleFor(x => x.SessionId)
+            .NotEmpty().WithMessage("La sesión es obligatoria.");
     }
 }

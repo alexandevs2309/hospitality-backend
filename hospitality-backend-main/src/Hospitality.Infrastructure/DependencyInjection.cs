@@ -1,12 +1,31 @@
+using Hospitality.Application.Audit;
 using Hospitality.Application.Auth.Commands;
 using Hospitality.Application.Auth.Services;
 using Hospitality.Application.Common.Interfaces;
+using Hospitality.Application.Finance.Commands;
+using Hospitality.Application.Finance.Services;
+using Hospitality.Application.Guests.Commands;
+using Hospitality.Application.Guests.Services;
 using Hospitality.Application.Hotels.Commands;
 using Hospitality.Application.Hotels.Queries;
 using Hospitality.Application.Hotels.Services;
+using Hospitality.Application.Reservations.Commands;
+using Hospitality.Application.Reservations.Services;
 using Hospitality.Application.Rooms.Commands;
 using Hospitality.Application.Rooms.Services;
+using Hospitality.Application.Rates.Commands;
+using Hospitality.Application.Rates.Services;
+using Hospitality.Application.RatePlans.Commands;
+using Hospitality.Application.RatePlans.Services;
+using Hospitality.Application.Channels.Commands;
+using Hospitality.Application.Channels.Services;
+using Hospitality.Application.Onboarding.Commands;
+using Hospitality.Application.Onboarding.Services;
+using Hospitality.Application.ChannelManager.Adapters;
+using Hospitality.Application.ChannelManager.Commands;
+using Hospitality.Application.ChannelManager.Services;
 using Hospitality.Domain.Entities;
+using Hospitality.Infrastructure.Identity;
 using Hospitality.Infrastructure.Persistence;
 using Hospitality.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
@@ -51,7 +70,8 @@ public static class DependencyInjection
             options.Lockout.MaxFailedAccessAttempts = 5;
         })
         .AddEntityFrameworkStores<ApplicationDbContext>()
-        .AddDefaultTokenProviders();
+        .AddDefaultTokenProviders()
+        .AddErrorDescriber<SpanishIdentityErrorDescriber>();
 
         // Configurar HttpContextAccessor para CurrentUserService
         services.AddHttpContextAccessor();
@@ -66,12 +86,24 @@ public static class DependencyInjection
         services.AddScoped<IHotelService, HotelService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IRoomService, RoomService>();
+        services.AddScoped<IReservationService, ReservationService>();
+        services.AddScoped<IGuestService, GuestService>();
+        services.AddScoped<IFinanceService, FinanceService>();
+        services.AddScoped<IRateService, RateService>();
+        services.AddScoped<IRatePlanService, RatePlanService>();
+        services.AddScoped<IChannelService, ChannelService>();
+        services.AddScoped<IOnboardingService, OnboardingService>();
+        services.AddScoped<IChannelManagerService, ChannelManagerService>();
+        services.AddScoped<BookingComAdapter>();
+        services.AddScoped<ExpediaAdapter>();
+        services.AddScoped<ChannelAdapterFactory>();
         // DashboardService implementa IDashboardService de Hotels.Queries (contrato del dashboard actual)
         services.AddScoped<IDashboardService, DashboardService>();
 
         // Registrar servicios de dominio básicos
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IHotelAccessGuard, HotelAccessGuard>();
+        services.AddScoped<IAuditService, AuditService>();
 
         return services;
     }

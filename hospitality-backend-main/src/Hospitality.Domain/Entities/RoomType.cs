@@ -17,6 +17,10 @@ public class RoomType : BaseEntity
     // Navigation properties
     public Hotel Hotel { get; set; } = null!;
     public ICollection<Room> Rooms { get; set; } = new List<Room>();
+
+    // Plan de tarifas asignado (opcional)
+    public Guid? RatePlanId { get; set; }
+    public RatePlan? RatePlan { get; set; }
     
     // Métodos de negocio
     public decimal CalculatePrice(int numberOfGuests, bool includeExtraBed = false)

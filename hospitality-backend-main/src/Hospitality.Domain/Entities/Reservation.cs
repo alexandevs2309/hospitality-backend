@@ -34,15 +34,20 @@ public class Reservation : BaseEntity
     public Guid HotelId { get; set; }
     public Guid RoomId { get; set; }
     public Guid GuestId { get; set; }
-    
+    public Guid? RatePlanId { get; set; }
+
+    // Penalización calculada al cancelar según el plan de tarifas (1B)
+    public decimal PenaltyAmount { get; set; }
+
     // Navigation properties
     public Hotel Hotel { get; set; } = null!;
     public Room Room { get; set; } = null!;
     public Guest Guest { get; set; } = null!;
+    public RatePlan? RatePlan { get; set; }
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     
     // Propiedades calculadas
-    public int NumberOfNights => (int)(CheckOutDate - CheckInDate).TotalDays;
+    public int NumberOfNights => Math.Max(0, (int)(CheckOutDate.Date - CheckInDate.Date).Days);
     public decimal RoomCharges => RoomRate * NumberOfNights;
     public decimal ExtraBedCharges => HasExtraBed ? ExtraBedRate * NumberOfNights : 0;
     public decimal Subtotal => RoomCharges + ExtraBedCharges;

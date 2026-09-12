@@ -28,6 +28,7 @@ services:
     container_name: hospitality-api
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:8080
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=hospitality_db;Username=postgres;Password=postgres"
       JwtSettings__Secret: "DockerDevelopmentSecretKeyForJWTTokenGeneration"
       JwtSettings__Issuer: "HospitalityAPI_Docker"
@@ -35,9 +36,9 @@ services:
       JwtSettings__ExpiryInMinutes: "1440"
       Cors__AllowedOrigins__0: "http://localhost:4200"
       Cors__AllowedOrigins__1: "https://localhost:4200"
+      Seed:DemoData: "true"
     ports:
       - "5000:8080"
-      - "5001:8081"
     depends_on:
       postgres:
         condition: service_healthy

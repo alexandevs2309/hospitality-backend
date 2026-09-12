@@ -146,6 +146,84 @@ public class HotelsController : ControllerBase
     }
 
     /// <summary>
+    /// Crea un tipo de habitación en la propiedad.
+    /// </summary>
+    [HttpPost("{id}/room-types")]
+    [ProducesResponseType(typeof(RoomTypeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<RoomTypeDto>> CreateHotelRoomType(Guid id, [FromBody] UpsertRoomTypeCommand command)
+    {
+        _accessGuard.EnsureCanAccessHotel(id);
+        if (!await _accessGuard.IsPropertyOperatorAsync(id))
+        {
+            return Forbid();
+        }
+
+        command.HotelId = id;
+        command.RoomTypeId = null;
+        try
+        {
+            var roomType = await _hotelService.CreateHotelRoomTypeAsync(command);
+            return Ok(roomType);
+        }
+        catch (Hospitality.Domain.Exceptions.ValidationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Actualiza un tipo de habitación de la propiedad.
+    /// </summary>
+    [HttpPut("{id}/room-types/{roomTypeId}")]
+    [ProducesResponseType(typeof(RoomTypeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<RoomTypeDto>> UpdateHotelRoomType(Guid id, Guid roomTypeId, [FromBody] UpsertRoomTypeCommand command)
+    {
+        _accessGuard.EnsureCanAccessHotel(id);
+        if (!await _accessGuard.IsPropertyOperatorAsync(id))
+        {
+            return Forbid();
+        }
+
+        command.HotelId = id;
+        command.RoomTypeId = roomTypeId;
+        try
+        {
+            var roomType = await _hotelService.UpdateHotelRoomTypeAsync(command);
+            return Ok(roomType);
+        }
+        catch (Hospitality.Domain.Exceptions.ValidationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Elimina un tipo de habitación de la propiedad.
+    /// </summary>
+    [HttpDelete("{id}/room-types/{roomTypeId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteHotelRoomType(Guid id, Guid roomTypeId)
+    {
+        _accessGuard.EnsureCanAccessHotel(id);
+        if (!await _accessGuard.IsPropertyOperatorAsync(id))
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            await _hotelService.DeleteHotelRoomTypeAsync(id, roomTypeId);
+            return NoContent();
+        }
+        catch (Hospitality.Domain.Exceptions.ValidationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    /// <summary>
     /// Obtiene nombres de hoteles para dropdowns
     /// </summary>
     [HttpGet("names")]

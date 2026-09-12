@@ -42,12 +42,15 @@ public class HousekeepingRoomDto
 
 public class MaintenanceTicketDto
 {
+    public Guid TicketId { get; set; }
+    public Guid RoomId { get; set; }
     public string Room { get; set; } = string.Empty;
     public string Issue { get; set; } = string.Empty;
     public string Priority { get; set; } = string.Empty;
     public string Assignee { get; set; } = string.Empty;
     public string Sla { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
 }
 
 public class ChartPointDto
