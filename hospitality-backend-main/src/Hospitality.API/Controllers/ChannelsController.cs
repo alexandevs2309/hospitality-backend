@@ -25,6 +25,32 @@ public class ChannelsController : ControllerBase
     }
 
     /// <summary>
+    /// Resuelve el hotel del canal y comprueba que el usuario actual lo opera
+    /// (Owner/Manager/Receptionist por membership o admin global).
+    /// </summary>
+    private async Task<bool> CanOperateChannelAsync(Guid channelId)
+    {
+        var hotelId = await _channelManagerService.GetChannelHotelIdAsync(channelId);
+        if (!hotelId.HasValue || !_accessGuard.CanAccessHotel(hotelId.Value))
+        {
+            return false;
+        }
+
+        return await _accessGuard.IsPropertyOperatorAsync(hotelId.Value);
+    }
+
+    private async Task<bool> CanOperateMappingAsync(Guid mappingId)
+    {
+        var hotelId = await _channelManagerService.GetMappingChannelHotelIdAsync(mappingId);
+        if (!hotelId.HasValue || !_accessGuard.CanAccessHotel(hotelId.Value))
+        {
+            return false;
+        }
+
+        return await _accessGuard.IsPropertyOperatorAsync(hotelId.Value);
+    }
+
+    /// <summary>
     /// Lista los canales de venta de la propiedad.
     /// </summary>
     [HttpGet]
@@ -109,6 +135,11 @@ public class ChannelsController : ControllerBase
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     public async Task<IActionResult> TestConnection(Guid id)
     {
+        if (!await CanOperateChannelAsync(id))
+        {
+            return Forbid();
+        }
+
         var success = await _channelManagerService.TestConnectionAsync(id);
         return Ok(new { success });
     }
@@ -120,6 +151,11 @@ public class ChannelsController : ControllerBase
     [ProducesResponseType(typeof(Dictionary<string, ChannelRoomTypeMap>), StatusCodes.Status200OK)]
     public async Task<ActionResult<Dictionary<string, ChannelRoomTypeMap>>> GetRoomTypeMaps(Guid id)
     {
+        if (!await CanOperateChannelAsync(id))
+        {
+            return Forbid();
+        }
+
         var maps = await _channelManagerService.FetchRoomTypeMapsAsync(id);
         return Ok(maps);
     }
@@ -131,6 +167,11 @@ public class ChannelsController : ControllerBase
     [ProducesResponseType(typeof(PushResultDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<PushResultDto>> CreateMappings(Guid id)
     {
+        if (!await CanOperateChannelAsync(id))
+        {
+            return Forbid();
+        }
+
         var result = await _channelManagerService.CreateMappingsAsync(id);
         return Ok(result);
     }
@@ -142,6 +183,11 @@ public class ChannelsController : ControllerBase
     [ProducesResponseType(typeof(PushResultDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<PushResultDto>> PushAvailability(Guid id, [FromBody] PushRangeCommand command)
     {
+        if (!await CanOperateChannelAsync(id))
+        {
+            return Forbid();
+        }
+
         var result = await _channelManagerService.PushAvailabilityAsync(id, command.From, command.To);
         return Ok(result);
     }
@@ -153,6 +199,11 @@ public class ChannelsController : ControllerBase
     [ProducesResponseType(typeof(PushResultDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<PushResultDto>> PushRates(Guid id, [FromBody] PushRangeCommand command)
     {
+        if (!await CanOperateChannelAsync(id))
+        {
+            return Forbid();
+        }
+
         var result = await _channelManagerService.PushRatesAsync(id, command.From, command.To);
         return Ok(result);
     }
@@ -164,8 +215,29 @@ public class ChannelsController : ControllerBase
     [ProducesResponseType(typeof(List<BookingPullDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<BookingPullDto>>> PullBookings(Guid id, [FromQuery] DateTime from, [FromQuery] DateTime to)
     {
+        if (!await CanOperateChannelAsync(id))
+        {
+            return Forbid();
+        }
+
         var bookings = await _channelManagerService.PullBookingsAsync(id, from, to);
         return Ok(bookings);
+    }
+
+    /// <summary>
+    /// Importa reservas del canal al PMS (OTA → sistema interno).
+    /// </summary>
+    [HttpPost("{id}/import-bookings")]
+    [ProducesResponseType(typeof(List<BookingImportDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<BookingImportDto>>> ImportBookings(Guid id, [FromBody] PushRangeCommand command)
+    {
+        if (!await CanOperateChannelAsync(id))
+        {
+            return Forbid();
+        }
+
+        var imported = await _channelManagerService.ImportBookingsAsync(id, command.From, command.To);
+        return Ok(imported);
     }
 
     /// <summary>
@@ -175,6 +247,11 @@ public class ChannelsController : ControllerBase
     [ProducesResponseType(typeof(List<ChannelMappingDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<ChannelMappingDto>>> GetMappings(Guid id)
     {
+        if (!await CanOperateChannelAsync(id))
+        {
+            return Forbid();
+        }
+
         var mappings = await _channelManagerService.GetMappingsAsync(id);
         return Ok(mappings);
     }
@@ -186,6 +263,11 @@ public class ChannelsController : ControllerBase
     [ProducesResponseType(typeof(ChannelMappingDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<ChannelMappingDto>> UpsertMapping(Guid id, [FromBody] UpsertChannelMappingCommand command)
     {
+        if (!await CanOperateChannelAsync(id))
+        {
+            return Forbid();
+        }
+
         command.ChannelId = id;
         var mapping = await _channelManagerService.UpsertMappingAsync(command);
         return Ok(mapping);
@@ -198,6 +280,11 @@ public class ChannelsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> DeleteMapping(Guid mappingId)
     {
+        if (!await CanOperateMappingAsync(mappingId))
+        {
+            return Forbid();
+        }
+
         await _channelManagerService.DeleteMappingAsync(mappingId);
         return NoContent();
     }
@@ -209,6 +296,11 @@ public class ChannelsController : ControllerBase
     [ProducesResponseType(typeof(ChannelCredentialsDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<ChannelCredentialsDto>> GetCredentials(Guid id)
     {
+        if (!await CanOperateChannelAsync(id))
+        {
+            return Forbid();
+        }
+
         var creds = await _channelManagerService.GetCredentialsAsync(id);
         return Ok(creds);
     }
@@ -220,6 +312,11 @@ public class ChannelsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> UpdateCredentials(Guid id, [FromBody] ChannelCredentialsDto command)
     {
+        if (!await CanOperateChannelAsync(id))
+        {
+            return Forbid();
+        }
+
         command.ChannelId = id;
         await _channelManagerService.UpdateCredentialsAsync(command);
         return NoContent();

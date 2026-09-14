@@ -2,6 +2,16 @@ using Hospitality.Application.ChannelManager.Adapters;
 
 namespace Hospitality.Application.ChannelManager.Adapters;
 
+/// <summary>
+/// ⚠️ ADAPTER DE DESARROLLO / SIMULADO (mock) — NO es integración real con
+/// Expedia. Todos los métodos son locales y deterministas (Task.Delay como
+/// latencia simulada; PullBookings devuelve lista vacía de prueba). NO hace
+/// ninguna llamada HTTP a Expedia.
+///
+/// Ver README.md del módulo ChannelManager. La integración real sustituiría el
+/// cuerpo por llamadas a la Expedia/EGENCIA API con credenciales reales,
+/// manteniendo el contrato de <see cref="IChannelAdapter"/>.
+/// </summary>
 public class ExpediaAdapter : IChannelAdapter
 {
     public string ChannelType => "Ota";
@@ -10,7 +20,11 @@ public class ExpediaAdapter : IChannelAdapter
     public async Task<bool> TestConnectionAsync(string credentialsJson)
     {
         await Task.Delay(100);
-        var creds = System.Text.Json.JsonSerializer.Deserialize<ExpediaCredentials>(credentialsJson);
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        var creds = System.Text.Json.JsonSerializer.Deserialize<ExpediaCredentials>(credentialsJson, options);
         return !string.IsNullOrEmpty(creds?.ApiKey) && !string.IsNullOrEmpty(creds?.HotelId);
     }
 

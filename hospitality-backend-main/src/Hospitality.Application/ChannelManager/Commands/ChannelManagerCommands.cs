@@ -53,13 +53,27 @@ public class BookingPullDto
     public Dictionary<string, object> RawData { get; set; } = new();
 }
 
+public class BookingImportDto
+{
+    public string ExternalBookingId { get; set; } = string.Empty;
+    public string ChannelRoomCode { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string? ReservationNumber { get; set; }
+    public decimal? TotalAmount { get; set; }
+    public int? Nights { get; set; }
+}
+
 public interface IChannelManagerService
 {
+    Task<Guid?> GetChannelHotelIdAsync(Guid channelId);
+    Task<Guid?> GetMappingChannelHotelIdAsync(Guid mappingId);
     Task<bool> TestConnectionAsync(Guid channelId);
     Task<Dictionary<string, ChannelRoomTypeMap>> FetchRoomTypeMapsAsync(Guid channelId);
     Task<PushResultDto> PushAvailabilityAsync(Guid channelId, DateTime from, DateTime to);
     Task<PushResultDto> PushRatesAsync(Guid channelId, DateTime from, DateTime to);
     Task<List<BookingPullDto>> PullBookingsAsync(Guid channelId, DateTime from, DateTime to);
+    Task<List<BookingImportDto>> ImportBookingsAsync(Guid channelId, DateTime from, DateTime to);
     Task<PushResultDto> CreateMappingsAsync(Guid channelId);
     Task<List<ChannelMappingDto>> GetMappingsAsync(Guid channelId);
     Task<ChannelMappingDto> UpsertMappingAsync(UpsertChannelMappingCommand command);
