@@ -19,6 +19,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<RatePlan> RatePlans => Set<RatePlan>();
     public DbSet<Channel> Channels => Set<Channel>();
     public DbSet<ChannelMapping> ChannelMappings => Set<ChannelMapping>();
+    public DbSet<AutomationRule> AutomationRules => Set<AutomationRule>();
+    public DbSet<GuestMessage> GuestMessages => Set<GuestMessage>();
     public DbSet<DomainEvent> DomainEvents => Set<DomainEvent>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
@@ -117,13 +119,40 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         {
             entity.HasIndex(m => new { m.ChannelId, m.RoomTypeId }).IsUnique();
             entity.HasOne(m => m.Channel)
-                .WithMany()
+                .WithMany(c => c.Mappings)
                 .HasForeignKey(m => m.ChannelId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(m => m.RoomType)
                 .WithMany()
                 .HasForeignKey(m => m.RoomTypeId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Reglas de automatización (Fase 3).
+        builder.Entity<AutomationRule>(entity =>
+        {
+            entity.HasIndex(r => new { r.HotelId, r.TriggerEvent });
+            entity.HasOne(r => r.Hotel)
+                .WithMany()
+                .HasForeignKey(r => r.HotelId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<GuestMessage>(entity =>
+        {
+            entity.HasIndex(m => new { m.HotelId, m.CreatedAt });
+            entity.HasOne(m => m.Hotel)
+                .WithMany()
+                .HasForeignKey(m => m.HotelId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(m => m.Rule)
+                .WithMany()
+                .HasForeignKey(m => m.RuleId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(m => m.Reservation)
+                .WithMany()
+                .HasForeignKey(m => m.ReservationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Un RoomType pertenece a un único plan de tarifas (opcional).

@@ -3,17 +3,20 @@ using System;
 using Hospitality.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Hospitality.Infrastructure.Persistence.Migrations
+namespace Hospitality.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260913044625_FixChannelMappingRelation")]
+    partial class FixChannelMappingRelation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -218,47 +221,6 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("AuditLogs", (string)null);
-                });
-
-            modelBuilder.Entity("Hospitality.Domain.Entities.AutomationRule", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Channel")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("HotelId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Template")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TriggerEvent")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HotelId", "TriggerEvent");
-
-                    b.ToTable("AutomationRules");
                 });
 
             modelBuilder.Entity("Hospitality.Domain.Entities.Channel", b =>
@@ -480,65 +442,6 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Guests");
-                });
-
-            modelBuilder.Entity("Hospitality.Domain.Entities.GuestMessage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Body")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Channel")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ChannelReference")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Error")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("HotelId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsSent")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Recipient")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("ReservationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("RuleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("SentAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Subject")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReservationId");
-
-                    b.HasIndex("RuleId");
-
-                    b.HasIndex("HotelId", "CreatedAt");
-
-                    b.ToTable("GuestMessages");
                 });
 
             modelBuilder.Entity("Hospitality.Domain.Entities.Hotel", b =>
@@ -1793,17 +1696,6 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Hospitality.Domain.Entities.AutomationRule", b =>
-                {
-                    b.HasOne("Hospitality.Domain.Entities.Hotel", "Hotel")
-                        .WithMany()
-                        .HasForeignKey("HotelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Hotel");
-                });
-
             modelBuilder.Entity("Hospitality.Domain.Entities.Channel", b =>
                 {
                     b.HasOne("Hospitality.Domain.Entities.Hotel", "Hotel")
@@ -1832,31 +1724,6 @@ namespace Hospitality.Infrastructure.Persistence.Migrations
                     b.Navigation("Channel");
 
                     b.Navigation("RoomType");
-                });
-
-            modelBuilder.Entity("Hospitality.Domain.Entities.GuestMessage", b =>
-                {
-                    b.HasOne("Hospitality.Domain.Entities.Hotel", "Hotel")
-                        .WithMany()
-                        .HasForeignKey("HotelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Hospitality.Domain.Entities.Reservation", "Reservation")
-                        .WithMany()
-                        .HasForeignKey("ReservationId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Hospitality.Domain.Entities.AutomationRule", "Rule")
-                        .WithMany()
-                        .HasForeignKey("RuleId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Hotel");
-
-                    b.Navigation("Reservation");
-
-                    b.Navigation("Rule");
                 });
 
             modelBuilder.Entity("Hospitality.Domain.Entities.Hotel", b =>

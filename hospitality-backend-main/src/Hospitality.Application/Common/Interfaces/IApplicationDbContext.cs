@@ -15,6 +15,8 @@ public interface IApplicationDbContext
     DbSet<ChannelMapping> ChannelMappings { get; }
     DbSet<DomainEvent> DomainEvents { get; }
     DbSet<OutboxMessage> OutboxMessages { get; }
+    DbSet<AutomationRule> AutomationRules { get; }
+    DbSet<GuestMessage> GuestMessages { get; }
 
     DbSet<Hotel> Hotels { get; }
     DbSet<Room> Rooms { get; }
