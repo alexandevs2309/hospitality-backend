@@ -11,6 +11,7 @@ public interface IDashboardService
     Task<List<ChartPointDto>> GetRevenueTrendAsync(Guid? hotelId = null, string period = "year");
     Task<Dictionary<string, decimal>> GetDashboardKpisAsync(Guid? hotelId = null);
     Task<DashboardWidgetsDto> GetDashboardWidgetsAsync(Guid? hotelId = null);
+    Task<RangeAnalyticsDto> GetRangeAnalyticsAsync(Guid? hotelId, DateTime from, DateTime to);
 }
 
 public class BookingRowDto
@@ -67,4 +68,31 @@ public class DashboardWidgetsDto
     public List<MaintenanceTicketDto> MaintenanceTickets { get; set; } = new List<MaintenanceTicketDto>();
     public List<ChartPointDto> OccupancyTrend { get; set; } = new List<ChartPointDto>();
     public List<ChartPointDto> RevenueTrend { get; set; } = new List<ChartPointDto>();
+}
+
+public class RoomTypeAnalyticsDto
+{
+    public string RoomTypeName { get; set; } = string.Empty;
+    public int Rooms { get; set; }
+    public int SoldNights { get; set; }
+    public decimal OccupancyRate { get; set; }
+    public decimal Revenue { get; set; }
+    public decimal AverageDailyRate { get; set; }
+}
+
+public class RangeAnalyticsDto
+{
+    public DateTime From { get; set; }
+    public DateTime To { get; set; }
+    public int Days { get; set; }
+    public int TotalRooms { get; set; }
+    public int SoldNights { get; set; }
+    public int AvailableNights { get; set; }
+    public decimal OccupancyRate { get; set; }
+    public decimal AverageDailyRate { get; set; }
+    public decimal RevenuePerAvailableRoom { get; set; }
+    public decimal RoomRevenue { get; set; }
+    public List<ChartPointDto> OccupancySeries { get; set; } = new List<ChartPointDto>();
+    public List<ChartPointDto> RevenueSeries { get; set; } = new List<ChartPointDto>();
+    public List<RoomTypeAnalyticsDto> ByRoomType { get; set; } = new List<RoomTypeAnalyticsDto>();
 }

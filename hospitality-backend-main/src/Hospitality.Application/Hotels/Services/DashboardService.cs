@@ -444,6 +444,136 @@ public class DashboardService : IDashboardService
         };
     }
 
+    public async Task<RangeAnalyticsDto> GetRangeAnalyticsAsync(Guid? hotelId, DateTime from, DateTime to)
+    {
+        var result = new RangeAnalyticsDto();
+        var id = await ResolveHotelIdAsync(hotelId);
+        if (!id.HasValue)
+        {
+            return result;
+        }
+
+        var fromDate = DateTime.SpecifyKind(from.Date, DateTimeKind.Utc);
+        var toDate = DateTime.SpecifyKind(to.Date, DateTimeKind.Utc);
+        if (toDate <= fromDate)
+        {
+            return result;
+        }
+
+        var days = (toDate - fromDate).Days;
+        result.From = fromDate;
+        result.To = toDate;
+        result.Days = days;
+        result.TotalRooms = await ResolveTotalRoomsAsync(id.Value);
+        result.AvailableNights = result.TotalRooms * days;
+
+        var activeStatuses = new[]
+        {
+            ReservationStatus.Confirmed,
+            ReservationStatus.CheckedIn,
+            ReservationStatus.CheckedOut
+        };
+
+        var reservations = await _context.Reservations
+            .Include(r => r.Room)
+            .ThenInclude(r => r.RoomType)
+            .Where(r => r.HotelId == id.Value &&
+                        r.CheckInDate < toDate &&
+                        r.CheckOutDate > fromDate &&
+                        activeStatuses.Contains(r.Status))
+            .ToListAsync();
+
+        var occupancies = new int[days];
+        var dailyRevenue = new decimal[days];
+        var byType = new Dictionary<string, RoomTypeAnalyticsDto>();
+
+        foreach (var r in reservations)
+        {
+            var startIdx = (r.CheckInDate.Date - fromDate).Days;
+            var totalNights = Math.Max(0, (r.CheckOutDate.Date - r.CheckInDate.Date).Days);
+            var start = Math.Max(0, startIdx);
+            var end = Math.Min(days, startIdx + totalNights);
+            if (end <= start)
+            {
+                continue;
+            }
+
+            var nightly = r.RoomRate > 0 ? r.RoomRate : r.Room?.RoomType?.BasePrice ?? 0m;
+            result.SoldNights += end - start;
+            var revenue = nightly * (end - start);
+            result.RoomRevenue += revenue;
+
+            for (var i = start; i < end; i++)
+            {
+                occupancies[i]++;
+                dailyRevenue[i] += nightly;
+            }
+
+            var typeName = r.Room?.RoomType?.Name ?? "Otro";
+            if (!byType.TryGetValue(typeName, out var typeAnalytics))
+            {
+                typeAnalytics = new RoomTypeAnalyticsDto { RoomTypeName = typeName };
+                byType[typeName] = typeAnalytics;
+            }
+            typeAnalytics.SoldNights += end - start;
+            typeAnalytics.Revenue += revenue;
+        }
+
+        result.RoomRevenue = Math.Round(result.RoomRevenue, 2);
+        result.OccupancyRate = result.AvailableNights > 0
+            ? Math.Round((decimal)result.SoldNights / result.AvailableNights * 100, 2)
+            : 0m;
+        result.AverageDailyRate = result.SoldNights > 0
+            ? Math.Round(result.RoomRevenue / result.SoldNights, 2)
+            : 0m;
+        result.RevenuePerAvailableRoom = result.AvailableNights > 0
+            ? Math.Round(result.RoomRevenue / result.AvailableNights, 2)
+            : 0m;
+
+        for (var i = 0; i < days; i++)
+        {
+            var day = fromDate.AddDays(i);
+            var occupancyPct = result.TotalRooms > 0
+                ? Math.Round((decimal)occupancies[i] / result.TotalRooms * 100, 2)
+                : 0m;
+            result.OccupancySeries.Add(new ChartPointDto { Label = day.ToString("dd MMM"), Value = occupancyPct });
+            result.RevenueSeries.Add(new ChartPointDto { Label = day.ToString("dd MMM"), Value = Math.Round(dailyRevenue[i], 2) });
+        }
+
+        var roomsByType = await _context.Rooms
+            .Where(r => r.HotelId == id.Value && !r.IsDeleted)
+            .Include(r => r.RoomType)
+            .GroupBy(r => r.RoomType != null ? r.RoomType.Name : "Otro")
+            .Select(g => new { Name = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Name, x => x.Count);
+
+        foreach (var kv in roomsByType)
+        {
+            if (!byType.TryGetValue(kv.Key, out var analytics))
+            {
+                analytics = new RoomTypeAnalyticsDto { RoomTypeName = kv.Key };
+                byType[kv.Key] = analytics;
+            }
+            analytics.Rooms = kv.Value;
+        }
+
+        foreach (var analytics in byType.Values)
+        {
+            var typeAvailableNights = analytics.Rooms > 0 ? analytics.Rooms * days : 0;
+            analytics.OccupancyRate = typeAvailableNights > 0
+                ? Math.Round((decimal)analytics.SoldNights / typeAvailableNights * 100, 2)
+                : 0m;
+            analytics.Revenue = Math.Round(analytics.Revenue, 2);
+            analytics.AverageDailyRate = analytics.SoldNights > 0
+                ? Math.Round(analytics.Revenue / analytics.SoldNights, 2)
+                : 0m;
+            result.ByRoomType.Add(analytics);
+        }
+
+        result.ByRoomType = result.ByRoomType.OrderByDescending(a => a.Revenue).ToList();
+        return result;
+    }
+
     private async Task<Guid?> ResolveHotelIdAsync(Guid? hotelId)
     {
         if (hotelId.HasValue && hotelId.Value != Guid.Empty)

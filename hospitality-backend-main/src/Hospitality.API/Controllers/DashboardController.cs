@@ -162,4 +162,21 @@ public class DashboardController : ControllerBase
         var widgets = await _dashboardService.GetDashboardWidgetsAsync(resolved);
         return Ok(widgets);
     }
+
+    /// <summary>
+    /// Analytics real por rango de fechas: occupancy, ADR, RevPAR, serie diaria
+    /// y desglose por tipo de habitación.
+    /// </summary>
+    /// <param name="from">Inicio del rango (inclusive).</param>
+    /// <param name="to">Fin del rango (exclusive).</param>
+    /// <param name="hotelId">ID del hotel</param>
+    /// <returns>Reporte de analytics del rango</returns>
+    [HttpGet("analytics/range")]
+    [ProducesResponseType(typeof(RangeAnalyticsDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<RangeAnalyticsDto>> GetRangeAnalytics([FromQuery] DateTime from, [FromQuery] DateTime to, Guid? hotelId = null)
+    {
+        var resolved = _accessGuard.ResolveRequestedHotel(hotelId);
+        var analytics = await _dashboardService.GetRangeAnalyticsAsync(resolved, from, to);
+        return Ok(analytics);
+    }
 }
