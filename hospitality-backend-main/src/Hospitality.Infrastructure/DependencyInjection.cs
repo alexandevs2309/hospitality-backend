@@ -9,6 +9,8 @@ using Hospitality.Application.Guests.Services;
 using Hospitality.Application.Hotels.Commands;
 using Hospitality.Application.Hotels.Queries;
 using Hospitality.Application.Hotels.Services;
+using Hospitality.Application.Organizations.Commands;
+using Hospitality.Application.Organizations.Services;
 using Hospitality.Application.Reservations.Commands;
 using Hospitality.Application.Reservations.Services;
 using Hospitality.Application.Rooms.Commands;
@@ -23,7 +25,14 @@ using Hospitality.Application.Onboarding.Commands;
 using Hospitality.Application.Onboarding.Services;
 using Hospitality.Application.ChannelManager.Adapters;
 using Hospitality.Application.ChannelManager.Commands;
+using Hospitality.Application.Automation.Commands;
+using Hospitality.Application.Automation.Services;
 using Hospitality.Application.ChannelManager.Services;
+using Hospitality.Application.Payments.Commands;
+using Hospitality.Application.Payments.Gateways;
+using Hospitality.Application.Payments.Services;
+using Hospitality.Application.PublicWidget.Commands;
+using Hospitality.Application.PublicWidget.Services;
 using Hospitality.Domain.Entities;
 using Hospitality.Infrastructure.Identity;
 using Hospitality.Infrastructure.Persistence;
@@ -94,15 +103,26 @@ public static class DependencyInjection
         services.AddScoped<IChannelService, ChannelService>();
         services.AddScoped<IOnboardingService, OnboardingService>();
         services.AddScoped<IChannelManagerService, ChannelManagerService>();
-        services.AddScoped<BookingComAdapter>();
-        services.AddScoped<ExpediaAdapter>();
+        services.AddScoped<IChannelAdapter, BookingComAdapter>();
+        services.AddScoped<IChannelAdapter, ExpediaAdapter>();
         services.AddScoped<ChannelAdapterFactory>();
         // DashboardService implementa IDashboardService de Hotels.Queries (contrato del dashboard actual)
         services.AddScoped<IDashboardService, DashboardService>();
 
+        // Motor de reservas embebible (booking engine widget)
+        services.AddScoped<IWidgetService, WidgetService>();
+
+        // Pasarela de pagos locales (Azul, CardNet)
+        services.AddScoped<IPaymentGateway, AzulGateway>();
+        services.AddScoped<IPaymentGateway, CardNetGateway>();
+        services.AddScoped<PaymentGatewayFactory>();
+        services.AddScoped<IPaymentGatewayService, PaymentGatewayService>();
+
         // Registrar servicios de dominio básicos
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IHotelAccessGuard, HotelAccessGuard>();
+        services.AddScoped<IAutomationService, AutomationService>();
+        services.AddScoped<IOrganizationService, OrganizationService>();
         services.AddScoped<IAuditService, AuditService>();
 
         return services;
