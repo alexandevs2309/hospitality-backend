@@ -26,13 +26,13 @@ public class HotelsController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene lista de hoteles con paginación. Los usuarios no-admin solo ven su propio hotel.
+    /// Obtiene lista de hoteles con paginación. Los usuarios no-admin solo ven sus propiedades asignadas.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(PaginatedResult<HotelDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PaginatedResult<HotelDto>>> GetHotels([FromQuery] PaginatedQuery query)
     {
-        var hotelScope = _accessGuard.IsAdmin ? null : _accessGuard.CurrentHotelId;
+        var hotelScope = _accessGuard.IsAdmin ? null : _accessGuard.PropertyIds;
         var hotels = await _hotelService.GetHotelsAsync(query, hotelScope);
         return Ok(hotels);
     }
@@ -55,14 +55,18 @@ public class HotelsController : ControllerBase
     }
 
     /// <summary>
-    /// Crea un hotel. Un usuario no-admin solo puede crear un hotel si aún no tiene uno asignado.
+    /// Crea un hotel (propiedad). Un propietario/administrador de organización puede
+    /// añadir varias propiedades; un usuario nuevo sin propiedad aún puede crear la primera.
     /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(HotelDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<HotelDto>> CreateHotel([FromBody] CreateHotelCommand command)
     {
-        if (!_accessGuard.IsAdmin && _accessGuard.CurrentHotelId.HasValue)
+        var canCreate = _accessGuard.IsAdmin
+            || !_accessGuard.CurrentHotelId.HasValue
+            || await _accessGuard.IsOrganizationAdminAsync();
+        if (!canCreate)
         {
             return Forbid();
         }
@@ -230,7 +234,7 @@ public class HotelsController : ControllerBase
     [ProducesResponseType(typeof(List<HotelNameDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<HotelNameDto>>> GetHotelNames()
     {
-        var hotelScope = _accessGuard.IsAdmin ? null : _accessGuard.CurrentHotelId;
+        var hotelScope = _accessGuard.IsAdmin ? null : _accessGuard.PropertyIds;
         var hotelNames = await _hotelService.GetHotelNamesAsync(hotelScope);
         return Ok(hotelNames);
     }
@@ -246,7 +250,7 @@ public class HotelsController : ControllerBase
         [FromQuery] int? minStars,
         [FromQuery] bool? isActive)
     {
-        var hotelScope = _accessGuard.IsAdmin ? null : _accessGuard.CurrentHotelId;
+        var hotelScope = _accessGuard.IsAdmin ? null : _accessGuard.PropertyIds;
         var hotels = await _hotelService.SearchHotelsAsync(name, city, minStars, isActive, hotelScope);
         return Ok(hotels);
     }

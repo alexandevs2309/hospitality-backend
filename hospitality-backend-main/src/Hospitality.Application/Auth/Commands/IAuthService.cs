@@ -55,6 +55,11 @@ public class UserDto
     public bool TwoFactorEnabled { get; set; }
 }
 
+public class SwitchPropertyCommand
+{
+    public Guid PropertyId { get; set; }
+}
+
 public interface IAuthService
 {
     Task<AuthResponse?> LoginAsync(LoginCommand command);
@@ -67,6 +72,7 @@ public interface IAuthService
     Task<AuthResult> ResetPasswordAsync(ResetPasswordCommand command);
     Task<AuthResponse?> RefreshTokenAsync(RefreshTokenCommand command);
     Task LogoutAsync();
+    Task<AuthResponse> SwitchPropertyAsync(SwitchPropertyCommand command);
     Task<bool> CheckEmailAvailabilityAsync(string email);
     Task<TwoFactorSetupDto> GetTwoFactorSetupAsync();
     Task<TwoFactorVerifyResult> VerifyTwoFactorAsync(TwoFactorVerifyCommand command);

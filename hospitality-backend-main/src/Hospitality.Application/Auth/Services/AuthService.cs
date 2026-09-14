@@ -7,6 +7,7 @@ using Hospitality.Application.Auth.Commands;
 using Hospitality.Application.Common.DTOs;
 using Hospitality.Application.Common.Interfaces;
 using Hospitality.Domain.Entities;
+using Hospitality.Domain.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -511,18 +512,48 @@ public class AuthService : IAuthService
         return await BuildAuthResponseAsync(user, roles, session, rawRefreshToken);
     }
 
-    private async Task<AuthResponse> BuildAuthResponseAsync(ApplicationUser user, IList<string> roles, UserSession session, string rawRefreshToken)
+    private async Task<AuthResponse> BuildAuthResponseAsync(ApplicationUser user, IList<string> roles, UserSession session, string rawRefreshToken, Guid? forceHotelId = null)
     {
         var expiryMinutes = GetTokenExpiryMinutes();
         var tokenExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes);
 
+        var mappedUser = MapUser(user, roles);
+        if (forceHotelId.HasValue && forceHotelId.Value != Guid.Empty)
+        {
+            mappedUser.HotelId = forceHotelId.Value;
+        }
+
         return new AuthResponse
         {
-            Token = await GenerateJwtTokenAsync(user, roles, expiryMinutes, session.Id),
+            Token = await GenerateJwtTokenAsync(user, roles, expiryMinutes, session.Id, forceHotelId),
             RefreshToken = rawRefreshToken,
             ExpiresAt = tokenExpiresAt,
-            User = MapUser(user, roles)
+            User = mappedUser
         };
+    }
+
+    /// <summary>
+    /// Cambia la propiedad activa del usuario y reemite el JWT con el nuevo
+    /// hotel_id (la lista property_ids completa se mantiene). Requiere que el
+    /// usuario tenga una asignación activa en la propiedad objetivo.
+    /// </summary>
+    public async Task<AuthResponse> SwitchPropertyAsync(SwitchPropertyCommand command)
+    {
+        var user = await GetCurrentUserOrThrowAsync();
+
+        var isAssigned = await _context.PropertyAssignments.AnyAsync(pa =>
+            pa.PropertyId == command.PropertyId &&
+            pa.UserId == user.Id &&
+            pa.IsActive && !pa.IsDeleted);
+        if (!isAssigned)
+        {
+            throw new ForbiddenAccessException("No tiene acceso a la propiedad seleccionada.");
+        }
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var (session, rawRefreshToken) = await RegisterSessionAsync(user);
+        _logger.LogInformation("Usuario {UserId} cambió a la propiedad {PropertyId}", user.Id, command.PropertyId);
+        return await BuildAuthResponseAsync(user, roles, session, rawRefreshToken, command.PropertyId);
     }
 
     private async Task<(UserSession Session, string RawToken)> RegisterSessionAsync(ApplicationUser user)
@@ -571,7 +602,7 @@ public class AuthService : IAuthService
         return (session, rawToken);
     }
 
-    private async Task<string> GenerateJwtTokenAsync(ApplicationUser user, IList<string> roles, int expiryMinutes, Guid sessionId)
+    private async Task<string> GenerateJwtTokenAsync(ApplicationUser user, IList<string> roles, int expiryMinutes, Guid sessionId, Guid? forceHotelId = null)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secret = jwtSettings["Secret"];
@@ -601,7 +632,8 @@ public class AuthService : IAuthService
             .Select(p => p.PropertyId)
             .ToListAsync();
 
-        Guid? effectiveHotelId = propertyIds.Count > 0 ? propertyIds[0] : user.HotelId;
+        Guid? effectiveHotelId = forceHotelId
+            ?? (propertyIds.Count > 0 ? propertyIds[0] : user.HotelId);
         if (effectiveHotelId.HasValue && effectiveHotelId.Value != Guid.Empty)
         {
             claims.Add(new Claim("hotel_id", effectiveHotelId.Value.ToString()));

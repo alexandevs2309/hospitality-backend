@@ -33,7 +33,7 @@ public class HotelDto
 
 public interface IHotelService
 {
-    Task<PaginatedResult<HotelDto>> GetHotelsAsync(PaginatedQuery query, Guid? hotelScope = null);
+    Task<PaginatedResult<HotelDto>> GetHotelsAsync(PaginatedQuery query, IReadOnlyList<Guid>? hotelScope = null);
     Task<HotelDto?> GetHotelByIdAsync(Guid id);
     Task<HotelDto> CreateHotelAsync(CreateHotelCommand command);
     Task<HotelDto> UpdateHotelAsync(UpdateHotelCommand command);
@@ -44,6 +44,6 @@ public interface IHotelService
     Task<RoomTypeDto> CreateHotelRoomTypeAsync(UpsertRoomTypeCommand command);
     Task<RoomTypeDto> UpdateHotelRoomTypeAsync(UpsertRoomTypeCommand command);
     Task DeleteHotelRoomTypeAsync(Guid hotelId, Guid roomTypeId);
-    Task<List<HotelNameDto>> GetHotelNamesAsync(Guid? hotelScope = null);
-    Task<List<HotelDto>> SearchHotelsAsync(string? name, string? city, int? minStars, bool? isActive, Guid? hotelScope = null);
+    Task<List<HotelNameDto>> GetHotelNamesAsync(IReadOnlyList<Guid>? hotelScope = null);
+    Task<List<HotelDto>> SearchHotelsAsync(string? name, string? city, int? minStars, bool? isActive, IReadOnlyList<Guid>? hotelScope = null);
 }

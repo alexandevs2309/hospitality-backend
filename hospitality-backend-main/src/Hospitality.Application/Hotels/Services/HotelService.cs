@@ -30,14 +30,14 @@ public class HotelService : IHotelService
         _logger = logger;
     }
 
-    public async Task<PaginatedResult<HotelDto>> GetHotelsAsync(PaginatedQuery query, Guid? hotelScope = null)
+    public async Task<PaginatedResult<HotelDto>> GetHotelsAsync(PaginatedQuery query, IReadOnlyList<Guid>? hotelScope = null)
     {
         var dbQuery = ApplyFilters(_context.ActiveHotels()
             .Include(h => h.Rooms.Where(r => !r.IsDeleted)), query);
 
-        if (hotelScope.HasValue)
+        if (hotelScope is { Count: > 0 })
         {
-            dbQuery = dbQuery.Where(h => h.Id == hotelScope.Value);
+            dbQuery = dbQuery.Where(h => hotelScope.Contains(h.Id));
         }
 
         var totalCount = await dbQuery.CountAsync();
@@ -65,40 +65,73 @@ public class HotelService : IHotelService
         var ownerUserId = _currentUserService.UserId;
         var ownerAlreadyHasHotel = _currentUserService.HotelId.HasValue;
 
-        // Un hotel se crea vinculado al usuario que lo crea (salvo Admin, que no se auto-vincula).
+        // Una propiedad se crea vinculada al usuario que la crea (salvo Admin, que no se auto-vincula).
         var bindToOwner = !string.IsNullOrEmpty(ownerUserId) && !ownerAlreadyHasHotel;
 
-        // Pre-check (caso habitual): un propietario solo puede tener un hotel activo.
+        // Pre-check (primer hotel): un propietario solo puede tener su primer hotel activo vinculado.
         if (bindToOwner && await _context.Users.AnyAsync(u => u.Id == ownerUserId && u.HotelId.HasValue))
         {
             throw new ConflictException("El usuario ya tiene un hotel asignado.");
         }
 
-        // Dos escrituras acopladas (hotel + usuario propietario) dentro de una transacción.
+        // Multi-propiedad: si el usuario ya pertenece a una organización, la nueva
+        // propiedad se cuelga del MISMO tenant (no se crea una organización nueva).
+        var myOrg = !string.IsNullOrEmpty(ownerUserId)
+            ? await _context.OrganizationMembers
+                .FirstOrDefaultAsync(m => m.UserId == ownerUserId && m.IsActive && !m.IsDeleted)
+            : null;
+
+        var createNewOrganization = myOrg is null;
+
+        // Dos escrituras acopladas dentro de una transacción.
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
-        // Fase 0: cada hotel nuevo crea su Organización (tenant) con Id = hotel.Id (1:1),
-        // de modo que la jerarquía Organización→Propiedad queda desde el alta.
-        var organization = new Organization
+        Guid organizationId;
+        if (createNewOrganization)
         {
-            Id = Guid.NewGuid(),
-            Name = command.Name,
-            BusinessName = command.BusinessName,
-            Email = command.Email,
-            PhoneNumber = command.PhoneNumber,
-            Plan = "small",
-            SelectedModules = ToJsonModules(command.SelectedModules),
-            DefaultCurrency = string.IsNullOrWhiteSpace(command.Currency) ? "USD" : command.Currency,
-            TimeZone = string.IsNullOrWhiteSpace(command.TimeZone) ? "UTC" : command.TimeZone,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+            // Primer hotel: organización 1:1 con la propiedad (Id = hotel.Id).
+            var organization = new Organization
+            {
+                Id = Guid.NewGuid(),
+                Name = command.Name,
+                BusinessName = command.BusinessName,
+                Email = command.Email,
+                PhoneNumber = command.PhoneNumber,
+                Plan = "small",
+                SelectedModules = ToJsonModules(command.SelectedModules),
+                DefaultCurrency = string.IsNullOrWhiteSpace(command.Currency) ? "USD" : command.Currency,
+                TimeZone = string.IsNullOrWhiteSpace(command.TimeZone) ? "UTC" : command.TimeZone,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            organizationId = organization.Id;
+
+            if (bindToOwner)
+            {
+                organization.Members.Add(new OrganizationMember
+                {
+                    OrganizationId = organization.Id,
+                    UserId = ownerUserId!,
+                    OrganizationRole = "Owner",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+
+            _context.Organizations.Add(organization);
+        }
+        else
+        {
+            organizationId = myOrg!.OrganizationId;
+        }
 
         var hotel = new Hotel
         {
-            Id = organization.Id,
-            OrganizationId = organization.Id,
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
             Name = command.Name,
             Description = command.Description,
             Address = command.Address,
@@ -124,18 +157,10 @@ public class HotelService : IHotelService
             UpdatedAt = DateTime.UtcNow
         };
 
-        if (bindToOwner)
+        // El creador queda como Owner de la propiedad (nuevo hotel 1:1 o propiedad
+        // adicional de un tenant existente).
+        if (bindToOwner || myOrg is not null)
         {
-            organization.Members.Add(new OrganizationMember
-            {
-                OrganizationId = organization.Id,
-                UserId = ownerUserId!,
-                OrganizationRole = "Owner",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            });
-
             _context.PropertyAssignments.Add(new PropertyAssignment
             {
                 PropertyId = hotel.Id,
@@ -147,7 +172,6 @@ public class HotelService : IHotelService
             });
         }
 
-        _context.Organizations.Add(organization);
         _context.Hotels.Add(hotel);
         await _context.SaveChangesAsync();
 
@@ -182,7 +206,7 @@ public class HotelService : IHotelService
 
             await transaction.CommitAsync();
         }
-        catch (DbUpdateException) when (bindToOwner)
+        catch (DbUpdateException) when (bindToOwner && createNewOrganization)
         {
             // Dos creaciones concurrentes del mismo propietario: el índice único
             // de AspNetUsers.HotelId rechaza la segunda. Se revierte y se informa.
@@ -190,7 +214,8 @@ public class HotelService : IHotelService
             throw new ConflictException("El usuario ya tiene un hotel asignado (creación simultánea detectada).");
         }
 
-        _logger.LogInformation("Hotel creado con ID {HotelId} {BoundToOwner}", hotel.Id, bindToOwner);
+        _logger.LogInformation("Hotel creado con ID {HotelId} (org {OrganizationId}, {Mode})",
+            hotel.Id, organizationId, createNewOrganization ? "1:1" : "tenant existente");
         return MapToDto(hotel);
     }
 
@@ -430,14 +455,14 @@ if (!await _context.ActiveHotels().AnyAsync(h => h.Id == id))
         };
     }
 
-    public async Task<List<HotelNameDto>> GetHotelNamesAsync(Guid? hotelScope = null)
+    public async Task<List<HotelNameDto>> GetHotelNamesAsync(IReadOnlyList<Guid>? hotelScope = null)
     {
         var query = _context.ActiveHotels()
             .Where(h => h.IsActive);
 
-        if (hotelScope.HasValue)
+        if (hotelScope is { Count: > 0 })
         {
-            query = query.Where(h => h.Id == hotelScope.Value);
+            query = query.Where(h => hotelScope.Contains(h.Id));
         }
 
         return await query
@@ -450,14 +475,14 @@ if (!await _context.ActiveHotels().AnyAsync(h => h.Id == id))
             .ToListAsync();
     }
 
-    public async Task<List<HotelDto>> SearchHotelsAsync(string? name, string? city, int? minStars, bool? isActive, Guid? hotelScope = null)
+    public async Task<List<HotelDto>> SearchHotelsAsync(string? name, string? city, int? minStars, bool? isActive, IReadOnlyList<Guid>? hotelScope = null)
     {
         IQueryable<Hotel> dbQuery = _context.ActiveHotels()
             .Include(h => h.Rooms.Where(r => !r.IsDeleted));
 
-        if (hotelScope.HasValue)
+        if (hotelScope is { Count: > 0 })
         {
-            dbQuery = dbQuery.Where(h => h.Id == hotelScope.Value);
+            dbQuery = dbQuery.Where(h => hotelScope.Contains(h.Id));
         }
 
         if (!string.IsNullOrWhiteSpace(name))

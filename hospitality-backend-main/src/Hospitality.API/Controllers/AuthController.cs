@@ -1,4 +1,5 @@
 using Hospitality.Application.Auth.Commands;
+using Hospitality.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -137,6 +138,25 @@ public class AuthController : ControllerBase
             return Unauthorized("Token de refresco inválido o expirado");
         }
         return Ok(response);
+    }
+
+    /// <summary>
+    /// Cambia la propiedad activa y reemite el token con el nuevo hotel_id
+    /// </summary>
+    [HttpPost("switch-property")]
+    [Authorize]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<AuthResponse>> SwitchProperty([FromBody] SwitchPropertyCommand command)
+    {
+        try
+        {
+            return Ok(await _authService.SwitchPropertyAsync(command));
+        }
+        catch (ForbiddenAccessException)
+        {
+            return Forbid();
+        }
     }
 
     /// <summary>
