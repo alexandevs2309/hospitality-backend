@@ -1,9 +1,11 @@
 using Hospitality.API.Extensions;
+using Hospitality.API.McpGateway;
 using Hospitality.API.Middleware;
 using Hospitality.Infrastructure;
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
 using Microsoft.AspNetCore.Mvc;
+using ModelContextProtocol.Server;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +34,14 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddApiServices(builder.Configuration);
 
+// MCP Gateway — capa de agentes (herramientas para LLMs, alcance por hotel del token).
+builder.Services.AddMcpServer()
+    .WithHttpTransport(options =>
+    {
+        options.Stateless = true;
+    })
+    .WithToolsFromAssembly();
+
 // Configurar CORS para integración con frontend Angular
 builder.Services.AddCors(options =>
 {
@@ -59,6 +69,15 @@ builder.Services.AddCors(options =>
                   .WithHeaders("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Device-Info")
                   .AllowCredentials()
                   .WithExposedHeaders("Content-Disposition");
+        });
+
+    // Policy para el motor de reservas embebible (cualquier sitio puede incrustar el widget)
+    options.AddPolicy("PublicWidget",
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .WithMethods("GET", "POST", "OPTIONS");
         });
 });
 
@@ -103,6 +122,10 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 app.MapHub<Hospitality.API.Hubs.DashboardLiveHub>("/hubs/dashboard");
+
+// MCP Gateway: mapea el protocolo MCP (JSON-RPC sobre HTTP) en /mcp.
+// Requiere JWT válido; las herramientas respetan el hotel del token.
+app.MapMcp("/mcp").RequireAuthorization();
 
 // Inicializar base de datos
 await app.InitializeDatabaseAsync();
