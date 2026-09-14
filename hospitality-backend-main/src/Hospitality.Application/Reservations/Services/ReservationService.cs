@@ -1,6 +1,7 @@
 using Hospitality.Application.Common;
 using Hospitality.Application.Common.DTOs;
 using Hospitality.Application.Common.Interfaces;
+using Hospitality.Application.Automation.Commands;
 using Hospitality.Application.Reservations.Commands;
 using Hospitality.Domain.Entities;
 using Hospitality.Domain.Enums;
@@ -14,12 +15,14 @@ public class ReservationService : IReservationService
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IAutomationService _automationService;
     private readonly ILogger<ReservationService> _logger;
 
-    public ReservationService(IApplicationDbContext context, ICurrentUserService currentUserService, ILogger<ReservationService> logger)
+    public ReservationService(IApplicationDbContext context, ICurrentUserService currentUserService, IAutomationService automationService, ILogger<ReservationService> logger)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _automationService = automationService;
         _logger = logger;
     }
 
@@ -187,6 +190,8 @@ public class ReservationService : IReservationService
         _logger.LogInformation("Reserva {Number} creada para habitación {Room} hotel {Hotel}",
             reservation.ReservationNumber, room.RoomNumber, hotel.Name);
 
+        await _automationService.FireAutomationAsync(hotel.Id, "ReservationCreated", reservation.Id);
+
         return await GetReservationByIdAsync(reservation.Id) ?? MapToDto(reservation);
     }
 
@@ -226,6 +231,7 @@ public class ReservationService : IReservationService
         _context.DomainEvents.Add(await DomainEventLog.NewAsync(_context, "reservation", reservation.Id, "ReservationConfirmed",
             new { reservation.ReservationNumber }, actorUserId: _currentUserService.UserId));
         await _context.SaveChangesAsync();
+        await _automationService.FireAutomationAsync(reservation.HotelId, "ReservationConfirmed", reservation.Id);
         return MapToDto(reservation);
     }
 
@@ -251,6 +257,8 @@ public class ReservationService : IReservationService
         _logger.LogInformation("Check-in de reserva {Number} en habitación {Room}",
             reservation.ReservationNumber, reservation.Room.RoomNumber);
 
+        await _automationService.FireAutomationAsync(reservation.HotelId, "ReservationCheckedIn", reservation.Id);
+
         return MapToDto(reservation);
     }
 
@@ -269,6 +277,8 @@ public class ReservationService : IReservationService
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Check-out de reserva {Number}", reservation.ReservationNumber);
+
+        await _automationService.FireAutomationAsync(reservation.HotelId, "ReservationCheckedOut", reservation.Id);
 
         return MapToDto(reservation);
     }
@@ -306,6 +316,8 @@ public class ReservationService : IReservationService
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Reserva {Number} cancelada", reservation.ReservationNumber);
+
+        await _automationService.FireAutomationAsync(reservation.HotelId, "ReservationCancelled", reservation.Id);
 
         return MapToDto(reservation);
     }
