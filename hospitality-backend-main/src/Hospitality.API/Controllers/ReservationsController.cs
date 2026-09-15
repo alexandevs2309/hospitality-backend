@@ -186,4 +186,39 @@ public class ReservationsController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+    /// <summary>
+    /// Mueve una reserva a otra habitación y/o rango de fechas (calendario drag &amp; drop).
+    /// Valida disponibilidad de la habitación de destino.
+    /// </summary>
+    [HttpPatch("{id}/move")]
+    [ProducesResponseType(typeof(ReservationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReservationDto>> Move(
+        Guid id,
+        [FromBody] MoveReservationCommand command)
+    {
+        if (command is null || command.RoomId == Guid.Empty)
+        {
+            return BadRequest("Habitación de destino obligatoria.");
+        }
+
+        var reservation = await _reservationService.GetReservationByIdAsync(id);
+        if (reservation == null) return NotFound($"Reserva con ID {id} no encontrada.");
+        _accessGuard.EnsureCanAccessHotel(reservation.HotelId);
+
+        try
+        {
+            return Ok(await _reservationService.MoveReservationAsync(id, command));
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
 }

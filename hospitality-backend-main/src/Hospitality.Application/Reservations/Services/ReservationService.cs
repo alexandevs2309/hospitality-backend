@@ -322,6 +322,99 @@ public class ReservationService : IReservationService
         return MapToDto(reservation);
     }
 
+    public async Task<ReservationDto> MoveReservationAsync(Guid id, MoveReservationCommand command)
+    {
+        var reservation = await GetForMutationAsync(id);
+
+        if (reservation.Status == ReservationStatus.Cancelled ||
+            reservation.Status == ReservationStatus.CheckedOut ||
+            reservation.Status == ReservationStatus.NoShow)
+        {
+            throw new ValidationException("No se puede mover una reserva cancelada, con no-show o con check-out realizado.");
+        }
+
+        var newRoom = await _context.Rooms
+            .Include(r => r.RoomType).ThenInclude(rt => rt.RatePlan)
+            .FirstOrDefaultAsync(r => r.Id == command.RoomId && !r.IsDeleted)
+            ?? throw new KeyNotFoundException($"Habitación con ID {command.RoomId} no encontrada.");
+
+        if (newRoom.HotelId != reservation.HotelId)
+        {
+            throw new ValidationException("La habitación de destino pertenece a otra propiedad.");
+        }
+
+        var checkIn = DateTime.SpecifyKind(command.CheckInDate, DateTimeKind.Utc);
+        var checkOut = DateTime.SpecifyKind(command.CheckOutDate, DateTimeKind.Utc);
+
+        if (checkOut.Date <= checkIn.Date)
+        {
+            throw new ValidationException("La reserva debe cubrir al menos una noche.");
+        }
+
+        var overlap = await _context.Reservations.AnyAsync(r =>
+            r.RoomId == newRoom.Id &&
+            r.Id != reservation.Id &&
+            r.Status != ReservationStatus.Cancelled &&
+            r.Status != ReservationStatus.CheckedOut &&
+            checkIn < r.CheckOutDate &&
+            checkOut > r.CheckInDate);
+        if (overlap)
+        {
+            throw new ValidationException("La habitación de destino ya tiene una reserva para ese rango de fechas.");
+        }
+
+        var wasCheckedIn = reservation.Status == ReservationStatus.CheckedIn;
+        var oldRoom = reservation.Room;
+
+        if (wasCheckedIn && oldRoom.Id != newRoom.Id)
+        {
+            if (oldRoom.Status == RoomStatus.Occupied)
+            {
+                oldRoom.Status = RoomStatus.Available;
+                oldRoom.IsClean = false;
+                oldRoom.UpdatedAt = DateTime.UtcNow;
+            }
+            newRoom.Status = RoomStatus.Occupied;
+            newRoom.UpdatedAt = DateTime.UtcNow;
+        }
+
+        var ratePlan = newRoom.RoomType.RatePlan;
+        var multiplier = ratePlan?.Multiplier ?? 1m;
+        reservation.RoomRate = Math.Round((await ResolveCalendarRateAsync(newRoom.RoomType, checkIn, checkOut)) * multiplier, 2);
+        if (reservation.HasExtraBed)
+        {
+            reservation.ExtraBedRate = Math.Round(reservation.RoomRate * 0.15m, 2);
+        }
+
+        reservation.RoomId = newRoom.Id;
+        reservation.CheckInDate = checkIn;
+        reservation.CheckOutDate = checkOut;
+        reservation.UpdatedAt = DateTime.UtcNow;
+        reservation.CalculateTotal();
+
+        _context.DomainEvents.Add(await DomainEventLog.NewAsync(_context, "reservation", reservation.Id, "ReservationMoved",
+            new
+            {
+                reservation.ReservationNumber,
+                FromRoomId = oldRoom.Id,
+                ToRoomId = reservation.RoomId,
+                reservation.CheckInDate,
+                reservation.CheckOutDate,
+                reservation.RoomRate,
+                reservation.TotalAmount
+            },
+            actorUserId: _currentUserService.UserId));
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Reserva {Number} movida a habitación {Room} [{CheckIn} → {CheckOut}]",
+            reservation.ReservationNumber, newRoom.RoomNumber, checkIn.Date, checkOut.Date);
+
+        await _automationService.FireAutomationAsync(reservation.HotelId, "ReservationMoved", reservation.Id);
+
+        return MapToDto(reservation);
+    }
+
     private async Task<Reservation> GetForMutationAsync(Guid id)
     {
         var reservation = await QueryWithDetails()

@@ -61,4 +61,12 @@ public interface IReservationService
     Task<ReservationDto> CheckOutReservationAsync(Guid id);
     Task<ReservationDto> CancelReservationAsync(Guid id, string? reason);
     Task<List<ReservationDto>> GetReservationsByGuestAsync(Guid guestId, Guid? hotelScope = null);
+    Task<ReservationDto> MoveReservationAsync(Guid id, MoveReservationCommand command);
+}
+
+public class MoveReservationCommand
+{
+    public Guid RoomId { get; set; }
+    public DateTime CheckInDate { get; set; }
+    public DateTime CheckOutDate { get; set; }
 }
